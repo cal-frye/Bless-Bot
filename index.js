@@ -1,31 +1,41 @@
+const fs = require('fs');
 const Discord = require('discord.js');
 const { prefix, token } = require('./config.json');
+
 const client = new Discord.Client();
+client.commands = new Discord.Collection();
+
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+
+
+for (const file of commandFiles) {
+    const command = require(`./commands/${file}`);
+    client.commands.set(command.name, command);
+}
+
 
 client.once('ready', () => {
-    console.log('I am prepared to serve the Lord with my whole heart.')
-})
+    console.log('I am prepared to serve the Lord with my whole heart.');
+});
+
 
 client.on('message', message => {
-    
-    let args = message.content.substring(prefix.length).split(" ");
-    
-    switch(args[0]) {
-        case 'bless' :
+    if (!message.content.startsWith(prefix) || message.author.bot) return;
 
-            if(args[1] === 'chat') {
-                message.channel.send('OH LORD! Bless this chat in the name of the Papa :pizza:, the Pepe :frog:, and the Pu$$y :ok_hand:. Amen.');
-            } else if(!args[1]) {
-                message.channel.send('Bless you, my child. May the good lord Pepe :frog: rain many dank memes upon your feed this day, now and forever. Amen. :pray:', {
-                    files: ["https://media.giphy.com/media/Ko6eiEhQRYQVO/giphy.gif"]
-                    });
-            } else {
-                message.channel.send('While I do not understand your request, my child, I nonetheless bless you, this chat, and all who meme within it.', {
-                    files: ["https://media.giphy.com/media/ZSuL021jBST2E/giphy.gif"]
-                });
-            }
-        break;
+    const args = message.content.slice(prefix.length).split(/ +/);
+    const commandName = args.shift().toLowerCase();
+
+    if (!client.commands.has(commandName)) return;
+
+    const command = client.commands.get(commandName);
+
+    try {
+        command.execute(message, args);
+    } catch (error) {
+        console.error(error);
+        message.reply(`I have stumbled while climbing the mountain of faith...\n..and have encountered an error. :cry:`);
     }
 })
+
 
 client.login(token);
